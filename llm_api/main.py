@@ -24,6 +24,19 @@ prompt = ChatPromptTemplate.from_messages(
     [("system", system_prompt), ("user", "{input}")]
 )
 
+planner_system_prompt = """
+You transform a youtube addiction improvment plan to a complete plan. The result is in json format
+the json object should contain 30 items from day_1 to day_30.
+In each item there are three items
+1. daily_rule: daily rule that describes what should allow to watch and what should avoid
+2. daily_limit: number that contains how many irrelevant videos are allowed today
+3. personal_goal: one action item for the personal goal
+"""
+
+json_prompt = ChatPromptTemplate.from_messages(
+    [("system", planner_system_prompt), ("user", "{input}")]
+)
+
 
 class Data(BaseModel):
     user_prompt: str
@@ -34,7 +47,13 @@ async def gpt35_turbo(data: Data):
     gpt35_turbo = ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature=0)
     chain = prompt | gpt35_turbo
     result = chain.invoke({"input": data.user_prompt})
-    return {"result": result}
+    gpt35_turbo_json = ChatOpenAI(
+        model_name="gpt-3.5-turbo-0125",
+        temperature=0,
+    ).bind(response_format={"type": "json_object"})
+    json_chain = json_prompt | gpt35_turbo_json
+    plan = json_chain.invoke({"input": result})
+    return {"result": result, "plan": plan}
 
 
 if __name__ == "__main__":
