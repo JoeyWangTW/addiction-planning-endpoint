@@ -36,12 +36,12 @@ prompt = ChatPromptTemplate.from_messages(
 )
 
 planner_system_prompt = """
-You transform a youtube addiction improvment plan to a complete plan. The result is in json format
+You transform a youtube addiction improvment plan to a structured data for a chrome extension. The result is in json format
 the json object should contain 30 items from day_1 to day_30.
 In each item there are three items
-1. daily_rule: daily rule that describes what should allow to watch and what should avoid
-2. daily_limit: number that contains how many irrelevant videos are allowed today
-3. personal_goal: one action item for the personal goal
+1. allowed_catagory: a list of video catagories that are related to the users goal
+2. daily_limit: number that contains how many irrelevant videos are allowed today, follow the plan and gradually reduce the limit from 10 to 0
+3. personal_goal: one action item for the personal goal, will be display to encourage user to work towards their goal
 """
 
 json_prompt = ChatPromptTemplate.from_messages(
@@ -50,14 +50,22 @@ json_prompt = ChatPromptTemplate.from_messages(
 
 
 class Data(BaseModel):
-    user_prompt: str
+    personal_goal: str
+    addiction_goal: str
 
 
 @app.post("/data/")
 async def gpt35_turbo(data: Data):
     gpt35_turbo = ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature=0)
     chain = prompt | gpt35_turbo
-    result = chain.invoke({"input": data.user_prompt})
+    result = chain.invoke(
+        {
+            "input": "Personal goal:"
+            + data.personal_goal
+            + " Addiction goal: "
+            + data.addiction_goal
+        }
+    )
     gpt35_turbo_json = ChatOpenAI(
         model_name="gpt-3.5-turbo-0125",
         temperature=0,
